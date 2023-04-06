@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="36cc6e2b-5414-467c-9e05-80ad82903126" name="MySQL - testdb@localhost Mapping">
+      <data-sources db="008f29a6-2672-4cbf-8f1f-66f569188c99" ddl="9fbba08b-b035-46dd-b385-e7ac52338343" />
+      <scope>
+        <node negative="1">
+          <node kind="schema">
+            <name qname="information_schema" />
+            <name qname="mysql" />
+            <name qname="performance_schema" />
+            <name qname="sys" />
+            <name qname="testdb" />
+          </node>
+          <node kind="database" negative="1" />
+        </node>
+      </scope>
+    </mapping>
+  </component>
+</project>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap 的 CSS 文件 -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <!-- 选项 1：jQuery 和 Bootstrap 集成包（集成了 Popper） -->
+    <script src="{% static 'js/jquery.slim.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+    <link href="{% static 'css/main.css' %}" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/test.css' %}" rel="stylesheet" type="text/css"/>
+
+
+    <title>知识问答</title>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="">知识图谱</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'home' %}">图谱概览</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'node_search' %}">知识点查询</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'answer' %}">知识问答<span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'showGrade' %}">成绩查询</a>
+            </li>
+        </ul>
+    </div>
+    {% if uid %}
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+            <input style="display: none" id="uid" name="uid" value="{{ uid }}"/>
+            <a class="nav-link">{{ uid }},</a>
+        </li>
+    </ul>
+    {% endif %}
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">退出</a>
+        </li>
+    </ul>
+</nav>
+
+<form class="form-inline" action="/answer/" method="post">
+    <h3>请选择需测试的小节:</h3>
+    <div class="form-group  mr-sm-2">
+        <select class="form-control mr-sm-2" name="km" id="km">
+            <option value=栈>栈</option>
+            <option value=队列>队列</option>
+            <option value=栈和队列的应用>栈和队列的应用</option>
+        </select>
+
+    </div>
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit" id="start" name="start">开始测试</button>
+</form>
+
+{% if subject %}
+<div class="main">
+    <!--nr start-->
+    <div class="test_main">
+        <div class="nr_left">
+            <div class="test">
+                <form action="/calGrade/" method="post">
+                    <input style="display: none" value="{{ subject }}" id="subject" name="subject"/>
+                    {# <input type="date" name="examtime" id="examtime" style="display: none"/>#}
+                    <div class="test_title">
+                        <div class="test_title">
+                            <font><input type="submit" name="tijiao" id="tijiao" value="交卷"/></font>
+                        </div>
+                    </div>
+                    <div class="test_content">
+                        <div class="test_content_title">
+                            <h2>单选题</h2>
+                            <p>
+                                <span>共</span><i class="content_lit">10</i><span>题，</span>
+                                <span>合计</span><i class="content_fs">100</i><span>分</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="test_content_nr" name="paper">
+                        <ul>
+                            {% for test in questions %}
+                            {% if forloop.counter < 11 %}
+                            <li id="{{ forloop.counter }}">
+                                <div class="test_content_nr_tt">
+                                    <i>{{ forloop.counter}}</i><span>({{ test.score }}分)</span>
+                                    <font>{{ test.title }}</font>
+                                </div>
+                                <div class="test_content_nr_main">
+                                    <ul>
+                                        <li class="option">
+                                            <input type="radio" class="radioOrCheck" name="{{ test.id }}" value="A"/>
+                                            <label>
+                                                A.<p class="ue" style="display: inline;">{{ test.optionA }}</p>
+                                            </label>
+                                        </li>
+
+                                        <li class="option">
+                                            <input type="radio" class="radioOrCheck" name="{{ test.id }}" value="B"/>
+                                            <label>
+                                                B.<p class="ue" style="display: inline;">{{ test.optionB }}</p>
+                                            </label>
+                                        </li>
+
+                                        <li class="option">
+                                            <input type="radio" class="radioOrCheck" name="{{ test.id }}" value="C"/>
+                                            <label>
+                                                C.<p class="ue" style="display: inline;">{{ test.optionC }}</p>
+                                            </label>
+                                        </li>
+
+                                        <li class="option">
+                                            <input type="radio" class="radioOrCheck" name="{{ test.id }}" value="D"/>
+                                            <label>
+                                                D.<p class="ue" style="display: inline;">{{ test.optionD }}</p>
+                                            </label>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if messages %}
+<script>
+            {% for msg in messages %}
+                alert('{{ msg.message }}');
+            {% endfor %}
+
+</script>
+{% endif %}
+
+</body>
+
+</html>

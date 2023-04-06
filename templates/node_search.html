@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap 的 CSS 文件 -->
+    <link rel="stylesheet" href="{% static '/css/bootstrap.min.css' %}">
+
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        html,body{
+            height: 100%;
+        }
+        #viz {
+            width: 100%;
+            height: 100%;
+        }
+
+    </style>
+
+    <!--选项 1：jQuery 和 Bootstrap 集成包（集成了 Popper） -->
+    <script type="text/javascript" src="{% static '/js/jquery.slim.min.js' %}"></script>
+    <script type="text/javascript" src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
+
+    <!--Neovis.js绘制图谱-->
+    <script type="text/javascript" src="{% static '/js/echarts.min.js' %}"></script>
+
+    <title>知识点查询</title>
+
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand">知识图谱</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'home' %}">图谱概览</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url 'node_search' %}">知识点查询<span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'answer' %}">知识问答</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'showGrade' %}">成绩查询</a>
+            </li>
+        </ul>
+    </div>
+    {% if uid %}
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+            <input style="display: none" id="uid" name="uid" value="{{ uid }}"/>
+            <a class="nav-link">{{ uid }},</a>
+        </li>
+    </ul>
+    {% endif %}
+    <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">退出</a>
+        </li>
+    </ul>
+</nav>
+
+<form class="form-inline" action="/node_search/" method="post">
+    <input class="form-control mr-sm-2" placeholder="知识点1" aria-label="Search" name="entity1" id="entity1"
+           value="{{ entity1 }}"/>
+    <div class="form-group  mr-sm-2">
+        <select class="form-control mr-sm-2" name="relation" id="relation">
+            <option value="">请选择关系</option>
+            <option value=章和节>章和节</option>
+            <option value=节和部分>节和部分</option>
+            <option value=部分与知识点>部分与知识点</option>
+            <option value=知识点与子知识点>知识点与子知识点</option>
+            <option value=应用>应用</option>
+            <option value=注意>注意</option>
+            <option value=相对位置>相对位置</option>
+        </select>
+    </div>
+    <input class="form-control mr-sm-2" placeholder="知识点2" aria-label="Search" name="entity2" id="entity2"
+           value="{{ entity2 }}"/>
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit" id="search" name="search">Search</button>
+</form>
+<div id="viz"></div>
+
+{#
+<script type="text/javascript">#}
+{#        $(function(){#}
+{#            // 接收后台传入的值#}
+{#            var op_id= {{relation|safe}}#}
+{#            // alert(city_id)#}
+{#            // 设置select的值#}
+{#            $("#relation").val(op_id)#}
+{#        })#}
+{#
+</script>
+#}
+{% if searchResult %}
+<script>
+             var searchResult = {{ searchResult|safe}}
+             var data = [];
+             var links=[];
+
+             var option
+             var id = 0;
+             for( var i = 0 ; i < searchResult.length ; i++ ){
+                //获取node1
+                node1 = {} ;
+                node1['draggable'] = true;  // 设置节点是否可以拖拽
+                node1['name'] = searchResult[i]['n1']['name'] ;
+                node1['no'] = searchResult[i]['n1']['no'] ;
+                if (searchResult[i]['n1']['content']){
+                    node1['content'] = searchResult[i]['n1']['content'];
+                }
+                if (searchResult[i]['n1']['definition']){
+                    node1['definition'] = searchResult[i]['n1']['definition'];
+                }
+                node1['label'] = searchResult[i]['n1']['label']
+                if (searchResult[i]['n1']['source'])
+                    node1['sources']=searchResult[i]['n1']['source']
+                // 节点分类, 数字代表option.series.categories中的索引
+                if(node1['label']==='Chapter'){
+                    node1['category'] = 0 ;
+                }
+                if(node1['label']==='Section'){
+                    node1['category'] = 1 ;
+                }
+                if(node1['label']==='Part'){
+                    node1['category'] = 2 ;
+                }
+                if(node1['label']==='Point'){
+                    node1['category'] = 3 ;
+                }
+                if(node1['label']==='sigPoint'){
+                    node1['category'] = 4 ;
+                }
+                if(node1['label']==='LPoint'){
+                    node1['category'] = 5 ;
+                }
+                if(node1['label']==='atom'){
+                    node1['category'] = 6 ;
+                }
+                if(node1['label']==='sigatom'){
+                    node1['category'] = 7 ;
+                }
+                if(node1['label']==='note'){
+                    node1['category'] = 8 ;
+                }
+
+                var flag = 1 ;
+                relationTarget = id.toString() ;
+                for(var j = 0 ; j<data.length ;j++){
+                    if(data[j]['name'] === node1['name']){
+                        flag = 0 ;
+                        relationTarget = data[j]['id'] ;
+                        break ;
+                    }
+                }
+
+                node1['id'] = relationTarget ;
+                if(flag === 1){
+                    id++ ;
+                    data.push(node1) ;
+                }
+
+                //获取node2
+                node2 = {} ;
+                node2['name'] = searchResult[i]['n2']['name'] ;
+                node2['draggable'] = true ;
+                node2['no'] = searchResult[i]['n2']['no'];
+                if (searchResult[i]['n2']['content']){
+                    node2['content'] = searchResult[i]['n2']['content'];
+                    //node2['content'] = node2['content'].replace(/\r\n/,"\\n");
+                    //node2['content'] = node2['content'].replace(/\r\n\t/,"\\t");
+                }
+
+                if (searchResult[i]['n2']['definition']){
+                    node2['definition'] = searchResult[i]['n2']['definition'];
+                    //node2['definition'] = node2['definition'].replace(/\r\n/,"\n");
+                    //node2['definition'] = node2['definition'].replace(/\r\n\t/,"\t");
+                }
+
+                node2['label'] = searchResult[i]['n2']['label']
+                if (searchResult[i]['n2']['source'])
+                    node2['sources']=searchResult[i]['n1']['source']
+
+                if(node2['label']==='Chapter'){     // 节点分类, 数字代表option.series.categories中的索引
+                    node2['category'] = 0 ;
+                }
+                if(node2['label']==='Section'){
+                    node2['category'] = 1 ;
+                }
+                if(node2['label']==='Part'){
+                    node2['category'] = 2 ;
+                }
+                if(node2['label']==='Point'){
+                    node2['category'] = 3 ;
+                }
+                if(node2['label']==='sigPoint'){
+                    node2['category'] = 4 ;
+                }
+                if(node2['label']==='LPoint'){
+                    node2['category'] = 5 ;
+                }
+                if(node2['label']==='atom'){
+                    node2['category'] = 6 ;
+                }
+                if(node2['label']==='sigatom'){
+                    node2['category'] = 7 ;
+                }
+                if(node2['label']==='note'){
+                    node2['category'] = 8 ;
+                }
+
+                flag = 1 ;
+                relationTarget = id.toString() ;
+                for(var j = 0 ; j<data.length ;j++){
+                    if(data[j]['name'] === node2['name']){
+                        flag = 0 ;
+                        relationTarget = data[j]['id'] ;
+                        break ;
+                    }
+                }
+                node2['id'] = relationTarget ;
+                if(flag === 1){
+                    id++ ;
+                    data.push(node2) ;
+                }
+
+                //获取relation
+                relation = {}
+                relation['source'] = node1['id'];  // 关系起点, 数字代表的是节点的id, 即node[id]
+                relation['target'] = node2['id'] ;  // 关系指向的终点, 也是id, 即通过节点的id描述两个节点以及关系
+                relation['category'] = 0 ;
+                flag = 1;
+                for(var j = 0 ;j<links.length;j++){
+                    if(links[j]['source'] === relation['source'] && links[j]['target'] === relation['target']){
+                        links[j]['value'] = links[j]['value'] + searchResult[i]['type(r)'] ;
+                        flag = 0 ;
+                        break ;
+                    }
+                }
+                if(flag === 1){
+                    relation['value'] = searchResult[i]['type(r)'] ;
+                    relation['symbolSize'] = 10;
+                    links.push(relation) ;
+                }
+
+            }
+
+             var myChart = echarts.init(document.getElementById('viz'));
+
+             option = {
+                title: {
+                    text: ''
+                },
+                tooltip: {
+                    show:true,
+                    enterable: true,
+                    confine:true,
+                    formatter: function (params){
+                        let res='',label;
+                        if (params.data['name'])
+                            res+= params.marker+params.data['name']+"<br/>";
+                        if (params.data['label']){
+                            if (params.data['label']==='Chapter')
+                                label='章';
+                            if (params.data['label']==='Section')
+                                label='节';
+                            if (params.data['label']==='Part')
+                                label='部分';
+                            if (params.data['label']==='Point')
+                                label='知识点';
+                            if (params.data['label']==='sigPoint')
+                                label='重要知识点';
+                            if (params.data['label']==='LPoint')
+                                label='子知识点';
+                            if (params.data['label']==='atom')
+                                label='知识原子';
+                            if (params.data['label']==='sigatom')
+                                label='重要知识原子';
+                            if (params.data['label']==='note')
+                                label='注意';
+                            res+= "&nbsp;&nbsp;&nbsp;&nbsp;"+"知识层级："+label+"<br/>";
+                        }
+                        if (params.data['no'])
+                            res+="&nbsp;&nbsp;&nbsp;&nbsp;"+"章节序号："+params.data['no']+"<br/>";
+                        if (params.data['definition']){
+                            params.data['definition']=params.data['definition'].replace(/</g,'&lt');
+                            params.data['definition']=params.data['definition'].replace(/>/g,'&gt');
+                            res += "&nbsp;&nbsp;&nbsp;&nbsp;"+"定义："+"<pre>"+params.data['definition']+"</pre>"+"<br/>";
+                        }
+
+                        if (params.data['content']){
+                            params.data['content']=params.data['content'].replace(/</g,'&lt');
+                            params.data['content']=params.data['content'].replace(/>/g,'&gt');
+                            res += "&nbsp;&nbsp;&nbsp;&nbsp;"+"内容："+"<pre>"+params.data['content']+"</pre>"+"<br/>";
+                        }
+                        if (params.data['sources'])
+                            res += '&nbsp;&nbsp;&nbsp;&nbsp;'+'相关课程推荐：'+'<a href="'+params.data['sources']+'">'+'查看'+'<a/>'+'<br/>';
+                        if (res)
+                            return res;
+                        else
+                            this.show=false;
+                    },
+                },
+                animationDurationUpdate: 1500,  //动画时长
+                animationEasingUpdate: 'quinticInOut',  //缓动效果
+                label: {
+                    normal: {
+                        show: true,
+                        textStyle: {
+                            fontSize: 12
+                        },
+                    }
+                },
+                legend: {
+                    x: "left",
+                    y: "left",
+                    orient:'vertical',
+                    show: true
+                },
+                series: [
+                    {
+                        type: 'graph',
+                        layout: 'force',
+                        focusNodeAdjacency: true,
+                        roam: true,
+                        edgeSymbol: ['none', 'arrow'],
+                        categories: [
+                            {
+                                name: '章',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#FFC0CB",
+                                    }
+                                },
+                                symbolSize: 150,
+                            },
+                            {
+                                name: '节',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#1E90FF",
+                                    }
+                                },
+                                symbolSize: 150,
+                            },
+                            {
+                                name: '部分',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#00F5FF",
+                                    }
+                                },
+                                symbolSize: 125,
+                            },
+                            {
+                                name: '知识点',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#DEB887",
+                                    }
+                                },
+                                symbolSize: 100,
+                            },
+                            {
+                                name: '重要知识点',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#FF0000",
+                                    }
+                                },
+                                symbolSize: 100,
+                            },
+                            {
+                                name: '子知识点',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#32CD32",
+                                    }
+                                },
+                                symbolSize: 75,
+                            },
+                            {
+                                name: '知识原子',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#228B22",
+                                    }
+                                },
+                                symbolSize: 50,
+                            },
+                            {
+                                name: '重要知识原子',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#FF0000",
+                                    }
+                                },
+                                symbolSize: 50,
+                            },
+                            {
+                                name: '注意',
+                                itemStyle: {
+                                    normal: {
+                                        color: "#FF8C00",
+                                    }
+                                },
+                                symbolSize: 75,
+                            },
+
+                        ],
+                        label: {
+                            normal: {
+                                show: true,
+                                textStyle: {
+                                    fontSize: 12,
+                                },
+                            }
+                        },
+                        force: {
+                            repulsion: 10000,
+                            layoutAnimation :true,
+                            edgeLength: 1000
+                        },
+                        edgeSymbolSize: [4, 50],
+                        edgeLabel: {
+                            normal: {
+                                show: true,
+                                textStyle: {
+                                    fontSize: 10
+                                },
+                                formatter: "{c}"   // 标签内容格式器。模板变量有 {a}、{b}、{c}，分别表示系列名，数据名，数据值。
+                            },
+                        },
+                        data: data,
+                        links:links,
+                        lineStyle: {
+                            normal: {
+                                opacity: 0.9,
+                                width: 1.3,
+                                curveness: 0,
+                                color:"#262626",
+                            }
+                        }
+                    }
+                ]
+            };
+             // 使用刚指定的配置项和数据显示图表。
+             myChart.setOption(option);
+
+             if (option && typeof option === 'object') {
+                myChart.setOption(option);
+            }
+             /*窗口自适应*/
+             $(window).resize(function(){
+                myChart.resize();
+            });
+
+</script>
+{% endif %}
+
+{% if messages %}
+<script>
+            {% for msg in messages %}
+                alert('{{ msg.message }}');
+            {% endfor %}
+
+</script>
+{% endif %}
+
+</body>
+
+</html>

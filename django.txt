@@ -1,0 +1,20 @@
+{% csrf_token %}
+
+# 将项目原有的应用的模型同步迁移到数据库：
+python manage.py migrate
+
+# 将数据模型迁移到数据库：
+python manage.py makemigrations web(应用名)
+python manage.py migrate
+
+# 从数据库传到model：
+python manage.py inspectdb>web/models.py
+
+# 创建管理员
+python manage.py createsuperuser
+
+# 运行
+python manage.py runserver
+
+# 运行app
+python manage.py startapp
